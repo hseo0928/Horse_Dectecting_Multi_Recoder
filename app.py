@@ -21,6 +21,8 @@ CHANNEL_URLS = cfg.get("channels", [])
 CHECK_INTERVAL = cfg.get("check_interval", 60)
 OUTPUT_ROOT = os.path.join(BASE_DIR, cfg.get("output_folder", "recordings"))
 FFMPEG_EXE_NAME = cfg.get("ffmpeg_exe", "ffmpeg.exe")
+LOG_MAX_SIZE = 10 * 1024 * 1024  # 10 MB per log file
+# Logs from yt_dlp are stored as OUTPUT_ROOT/<channel>.log
 
 ffmpeg_path = os.path.join(BASE_DIR, FFMPEG_EXE_NAME)
 if not os.path.isfile(ffmpeg_path):
@@ -44,6 +46,13 @@ def start_recording(url):
     os.makedirs(outd, exist_ok=True)
     template = os.path.join(outd, "%(upload_date)s_%(title)s_%%03d.mp4")
 
+    # Log file for this channel (stdout/stderr of yt_dlp)
+    log_path = os.path.join(OUTPUT_ROOT, f"{safe}.log")
+    mode = 'ab'
+    if os.path.exists(log_path) and os.path.getsize(log_path) > LOG_MAX_SIZE:
+        mode = 'wb'  # truncate when exceeding limit
+    log_file = open(log_path, mode)
+
     cmd = [
         sys.executable, "-m", "yt_dlp",
         "--ffmpeg-location", ffmpeg_path,
@@ -55,7 +64,8 @@ def start_recording(url):
         "-o", template,
         url
     ]
-    proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    proc = subprocess.Popen(cmd, stdout=log_file, stderr=subprocess.STDOUT)
+    proc.log_file = log_file  # store to close later
     start_times[url] = time.time()
     return proc
 
@@ -71,6 +81,11 @@ def stop_recording(proc, url=None):
                 p.wait(timeout=10)
             except subprocess.TimeoutExpired:
                 p.kill()
+        if hasattr(p, "log_file"):
+            try:
+                p.log_file.close()
+            except Exception:
+                pass
 
 def listen_for_exit():
     global stop_flag
