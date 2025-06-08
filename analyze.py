@@ -62,6 +62,7 @@ def analyze(url):
         if COOKIE_PATH:
             print('[안내] 쿠키 파일이 올바른지 확인하세요. Netscape 형식으로 최신 쿠키를 내보내야 합니다.')
         return
+    info = ydl.extract_info(url, download=False)
     stream_url = info['url']
 
     cap = cv2.VideoCapture(stream_url)
