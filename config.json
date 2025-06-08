@@ -26,5 +26,7 @@
   "output_folder": "recordings",
   "ffmpeg_exe": "ffmpeg.exe",
   "detect_model": "yolov5s.pt",
-  "conf_threshold": 0.5
+  "conf_threshold": 0.5,
+  "evidence_folder": "evidence",
+  "cookiefile": "cookies.txt"
 }
