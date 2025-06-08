@@ -1,0 +1,30 @@
+{
+  "channels": [
+    "https://www.youtube.com/@시니컬AI경마에널/live",
+    "https://www.youtube.com/@채널이름/live",
+    "https://www.youtube.com/@채널이름/live",
+    "https://www.youtube.com/@채널이름/live",
+    "https://www.youtube.com/@채널이름/live",            
+    "https://www.youtube.com/@채널이름/live",
+    "https://www.youtube.com/@채널이름/live",
+    "https://www.youtube.com/@채널이름/live",
+    "https://www.youtube.com/@채널이름/live",
+    "https://www.youtube.com/@채널이름/live",
+    "https://www.youtube.com/@채널이름/live",
+    "https://www.youtube.com/@채널이름/live",
+    "https://www.youtube.com/@채널이름/live",
+    "https://www.youtube.com/@채널이름/live",
+    "https://www.youtube.com/@채널이름/live",
+    "https://www.youtube.com/@채널이름/live",
+    "https://www.youtube.com/@채널이름/live",
+    "https://www.youtube.com/@채널이름/live",
+    "https://www.youtube.com/@채널이름/live",
+    "https://www.youtube.com/@채널이름/live",
+    "https://www.youtube.com/@채널이름/live"
+  ],
+  "check_interval": 30,
+  "output_folder": "recordings",
+  "ffmpeg_exe": "ffmpeg.exe",
+  "detect_model": "yolov5s.pt",
+  "conf_threshold": 0.5
+}
