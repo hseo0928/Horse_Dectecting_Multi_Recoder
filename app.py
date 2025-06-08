@@ -148,6 +148,11 @@ def detect_stream(url, safe):
     opts = {'quiet': True}
     if COOKIE_PATH:
         opts['cookiefile'] = COOKIE_PATH
+    opts = {'quiet': True}
+    if COOKIEFILE:
+        cookie_path = os.path.join(BASE_DIR, COOKIEFILE)
+        if os.path.isfile(cookie_path):
+            opts['cookiefile'] = cookie_path
     ydl = YoutubeDL(opts)
     try:
         info = ydl.extract_info(url, download=False)
