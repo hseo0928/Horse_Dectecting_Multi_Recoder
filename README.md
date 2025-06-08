@@ -37,6 +37,7 @@
 
 일반 녹화물은 `recordings/` 폴더에,
 말 감지 시 저장되는 증거 영상은 `evidence/` 폴더에 구분되어 저장됩니다.
+이 위치는 `config.json`의 `evidence_folder` 값으로 변경할 수 있습니다.
 
 ## 수동 분석
 
@@ -49,7 +50,9 @@ python analyze.py <youtube_url>
 ## 쿠키 파일 설정
 
 로그인이 필요한 영상의 경우 브라우저에서 추출한 쿠키 파일을
-`config.json`의 `"cookiefile"` 항목에 지정하면 접근할 수 있습니다.
+`config.json`의 `"cookiefile"` 항목에 지정하면 접근할 수 있습니다. 쿠키는
+반드시 Netscape 형식으로 저장해야 하며, 지정한 경로에 실제 파일이 존재해야
+합니다.
 
 ```
 {
@@ -57,7 +60,17 @@ python analyze.py <youtube_url>
 }
 ```
 
-쿠키 파일을 저장한 뒤 같은 경로에 두고 실행하면 됩니다.
+쿠키 파일을 찾을 수 없으면 프로그램이 즉시 종료되므로 경로를 정확히
+확인하십시오.
+
+쿠키는 [cookies.txt](https://github.com/dragonofmercy/cookies.txt)와 같은
+브라우저 확장으로 내보내는 것이 가장 간편합니다. 확장 설치 후 유튜브에
+로그인한 탭에서 "Export"를 눌러 `cookies.txt` 파일을 저장하면 됩니다.
+
+## ffmpeg 설정
+
+기본값으로 `ffmpeg` 실행 파일을 사용합니다. Windows 사용자는
+`config.json`의 `"ffmpeg_exe"` 값을 `"ffmpeg.exe"`로 변경해야 합니다.
 
 
 ## 시스템 플로우

@@ -16,6 +16,14 @@ DETECT_MODEL = os.path.join(BASE_DIR, cfg.get('detect_model', 'yolov5s.pt'))
 CONF_THRESHOLD = float(cfg.get('conf_threshold', 0.5))
 EVIDENCE_ROOT = os.path.join(BASE_DIR, cfg.get('evidence_folder', 'evidence'))
 COOKIEFILE = cfg.get('cookiefile')
+COOKIE_PATH = None
+if COOKIEFILE:
+    _cp = os.path.join(BASE_DIR, COOKIEFILE)
+    if os.path.isfile(_cp):
+        COOKIE_PATH = _cp
+    else:
+        print(f'[오류] 쿠키 파일을 찾을 수 없습니다: {_cp}')
+        sys.exit(1)
 
 
 def load_detector():
@@ -44,13 +52,16 @@ def create_writer(folder, base, fps, width, height):
 
 def analyze(url):
     opts = {'quiet': True}
-    if COOKIEFILE:
-        cookie_path = os.path.join(BASE_DIR, COOKIEFILE)
-        if os.path.isfile(cookie_path):
-            opts['cookiefile'] = cookie_path
+    if COOKIE_PATH:
+        opts['cookiefile'] = COOKIE_PATH
     ydl = YoutubeDL(opts)
-    ydl = YoutubeDL({'quiet': True})
-    info = ydl.extract_info(url, download=False)
+    try:
+        info = ydl.extract_info(url, download=False)
+    except Exception as e:
+        print(f'[오류] 동영상 정보를 가져오지 못했습니다: {e}')
+        if COOKIE_PATH:
+            print('[안내] 쿠키 파일이 올바른지 확인하세요. Netscape 형식으로 최신 쿠키를 내보내야 합니다.')
+        return
     stream_url = info['url']
 
     cap = cv2.VideoCapture(stream_url)

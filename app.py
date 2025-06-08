@@ -9,6 +9,7 @@ import subprocess
 import threading
 import time
 import signal
+import shutil
 from datetime import timedelta
 
 try:
@@ -29,16 +30,27 @@ CHANNEL_URLS = cfg.get("channels", [])
 CHECK_INTERVAL = cfg.get("check_interval", 60)
 OUTPUT_ROOT = os.path.join(BASE_DIR, cfg.get("output_folder", "recordings"))
 EVIDENCE_ROOT = os.path.join(BASE_DIR, cfg.get("evidence_folder", "evidence"))
-FFMPEG_EXE_NAME = cfg.get("ffmpeg_exe", "ffmpeg.exe")
+FFMPEG_EXE_NAME = cfg.get("ffmpeg_exe", "ffmpeg")
 DETECT_MODEL = os.path.join(BASE_DIR, cfg.get("detect_model", "yolov5s.pt"))
 CONF_THRESHOLD = float(cfg.get("conf_threshold", 0.5))
 COOKIEFILE = cfg.get("cookiefile")
+COOKIE_PATH = None
+if COOKIEFILE:
+    _cp = os.path.join(BASE_DIR, COOKIEFILE)
+    if os.path.isfile(_cp):
+        COOKIE_PATH = _cp
+    else:
+        print(f"[오류] 쿠키 파일을 찾을 수 없습니다: {_cp}")
+        sys.exit(1)
 LOG_MAX_SIZE = 10 * 1024 * 1024  # 10 MB per log file
 # Logs from yt_dlp are stored as OUTPUT_ROOT/<channel>.log
 
-ffmpeg_path = os.path.join(BASE_DIR, FFMPEG_EXE_NAME)
+ffmpeg_path = shutil.which(FFMPEG_EXE_NAME)
+if not ffmpeg_path:
+    ffmpeg_path = os.path.join(BASE_DIR, FFMPEG_EXE_NAME)
 if not os.path.isfile(ffmpeg_path):
-    print(f"[오류] ffmpeg.exe를 찾을 수 없습니다: {ffmpeg_path}")
+    print(f"[오류] ffmpeg 실행 파일을 찾을 수 없습니다: {FFMPEG_EXE_NAME}")
+    print("config.json의 ffmpeg_exe 값을 확인하세요.")
     sys.exit(1)
 
 stop_flag = False
@@ -91,10 +103,8 @@ def start_recording(url):
         "-o", template,
         url
     ]
-    if COOKIEFILE:
-        cookie_path = os.path.join(BASE_DIR, COOKIEFILE)
-        if os.path.isfile(cookie_path):
-            cmd.extend(["--cookies", cookie_path])
+    if COOKIE_PATH:
+        cmd.extend(["--cookies", COOKIE_PATH])
     proc = subprocess.Popen(cmd, stdout=log_file, stderr=subprocess.STDOUT)
     proc.log_file = log_file  # store to close later
     start_times[url] = time.time()
@@ -136,16 +146,15 @@ def create_evidence_writer(folder, base_name, fps, width, height):
 def detect_stream(url, safe):
     global detector
     opts = {'quiet': True}
-    if COOKIEFILE:
-        cookie_path = os.path.join(BASE_DIR, COOKIEFILE)
-        if os.path.isfile(cookie_path):
-            opts['cookiefile'] = cookie_path
+    if COOKIE_PATH:
+        opts['cookiefile'] = COOKIE_PATH
     ydl = YoutubeDL(opts)
-    ydl = YoutubeDL({'quiet': True})
     try:
         info = ydl.extract_info(url, download=False)
     except Exception as e:
         print(f"[오류] 스트림 정보를 가져올 수 없습니다: {e}")
+        if COOKIE_PATH:
+            print("[안내] 쿠키 파일이 올바른지 확인하세요. Netscape 형식으로 최신 쿠키를 내보내야 합니다.")
         return
     stream_url = info.get('url')
     cap = cv2.VideoCapture(stream_url)

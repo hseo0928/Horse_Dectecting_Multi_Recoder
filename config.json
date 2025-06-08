@@ -24,10 +24,9 @@
   ],
   "check_interval": 30,
   "output_folder": "recordings",
-  "ffmpeg_exe": "ffmpeg.exe",
+  "ffmpeg_exe": "ffmpeg",
   "detect_model": "yolov5s.pt",
   "conf_threshold": 0.5,
-  "evidence_folder": "evidence",
-  "cookiefile": "cookies.txt"
+  "cookiefile": "cookies.txt",
   "evidence_folder": "evidence"
 }
