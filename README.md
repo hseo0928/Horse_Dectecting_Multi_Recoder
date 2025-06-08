@@ -63,6 +63,10 @@ python analyze.py <youtube_url>
 쿠키 파일을 찾을 수 없으면 프로그램이 즉시 종료되므로 경로를 정확히
 확인하십시오.
 
+쿠키는 [cookies.txt](https://github.com/dragonofmercy/cookies.txt)와 같은
+브라우저 확장으로 내보내는 것이 가장 간편합니다. 확장 설치 후 유튜브에
+로그인한 탭에서 "Export"를 눌러 `cookies.txt` 파일을 저장하면 됩니다.
+
 ## ffmpeg 설정
 
 기본값으로 `ffmpeg` 실행 파일을 사용합니다. Windows 사용자는

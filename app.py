@@ -145,11 +145,13 @@ def create_evidence_writer(folder, base_name, fps, width, height):
 
 def detect_stream(url, safe):
     global detector
-    opts = {'quiet': True}
-    if COOKIE_PATH:
-        opts['cookiefile'] = COOKIE_PATH
-    opts = {'quiet': True}
-    if COOKIEFILE:
+    try:
+        info = ydl.extract_info(url, download=False)
+    except Exception as e:
+        print(f"[오류] 스트림 정보를 가져올 수 없습니다: {e}")
+        if COOKIE_PATH:
+            print("[안내] 쿠키 파일이 올바른지 확인하세요. Netscape 형식으로 최신 쿠키를 내보내야 합니다.")
+        return
         cookie_path = os.path.join(BASE_DIR, COOKIEFILE)
         if os.path.isfile(cookie_path):
             opts['cookiefile'] = cookie_path

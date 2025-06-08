@@ -55,7 +55,13 @@ def analyze(url):
     if COOKIE_PATH:
         opts['cookiefile'] = COOKIE_PATH
     ydl = YoutubeDL(opts)
-    info = ydl.extract_info(url, download=False)
+    try:
+        info = ydl.extract_info(url, download=False)
+    except Exception as e:
+        print(f'[오류] 동영상 정보를 가져오지 못했습니다: {e}')
+        if COOKIE_PATH:
+            print('[안내] 쿠키 파일이 올바른지 확인하세요. Netscape 형식으로 최신 쿠키를 내보내야 합니다.')
+        return
     stream_url = info['url']
 
     cap = cv2.VideoCapture(stream_url)
