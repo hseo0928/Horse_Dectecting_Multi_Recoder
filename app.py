@@ -9,8 +9,16 @@ import subprocess
 import threading
 import time
 import signal
-import win32api
 from datetime import timedelta
+
+try:
+    import win32api  # type: ignore
+except Exception:  # pragma: no cover - optional on non-Windows
+    win32api = None
+
+import cv2
+import torch
+from yt_dlp import YoutubeDL
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(BASE_DIR, "config.json")
@@ -20,7 +28,10 @@ with open(CONFIG_PATH, encoding="utf-8") as f:
 CHANNEL_URLS = cfg.get("channels", [])
 CHECK_INTERVAL = cfg.get("check_interval", 60)
 OUTPUT_ROOT = os.path.join(BASE_DIR, cfg.get("output_folder", "recordings"))
+EVIDENCE_ROOT = os.path.join(BASE_DIR, cfg.get("evidence_folder", "evidence"))
 FFMPEG_EXE_NAME = cfg.get("ffmpeg_exe", "ffmpeg.exe")
+DETECT_MODEL = os.path.join(BASE_DIR, cfg.get("detect_model", "yolov5s.pt"))
+CONF_THRESHOLD = float(cfg.get("conf_threshold", 0.5))
 LOG_MAX_SIZE = 10 * 1024 * 1024  # 10 MB per log file
 # Logs from yt_dlp are stored as OUTPUT_ROOT/<channel>.log
 
@@ -32,7 +43,22 @@ if not os.path.isfile(ffmpeg_path):
 stop_flag = False
 recording_procs = {url: None for url in CHANNEL_URLS}
 start_times = {}
+detection_threads = {url: None for url in CHANNEL_URLS}
+detector = None
 
+def load_detector():
+    model = torch.hub.load('ultralytics/yolov5', 'custom', path=DETECT_MODEL, force_reload=False)
+    model.conf = CONF_THRESHOLD
+    horse_ids = [i for i, n in model.names.items() if n.lower() == 'horse']
+
+    def detect(frame):
+        results = model(frame)
+        for *_, conf, cls in results.xyxy[0]:
+            if int(cls) in horse_ids and float(conf) >= CONF_THRESHOLD:
+                return True
+        return False
+
+    return detect
 def is_live_now(url):
     try:
         res = requests.get(url, headers={"User-Agent":"Mozilla/5.0"}, timeout=10)
@@ -67,11 +93,18 @@ def start_recording(url):
     proc = subprocess.Popen(cmd, stdout=log_file, stderr=subprocess.STDOUT)
     proc.log_file = log_file  # store to close later
     start_times[url] = time.time()
+    t = threading.Thread(target=detect_stream, args=(url, safe), daemon=True)
+    t.start()
+    detection_threads[url] = t
     return proc
 
 def stop_recording(proc, url=None):
     if url and url in start_times:
         del start_times[url]
+    t = detection_threads.get(url)
+    if t and t.is_alive():
+        t.join(timeout=1)
+    detection_threads[url] = None
     if not proc:
         return
     for p in (proc if isinstance(proc, list) else [proc]):
@@ -87,6 +120,50 @@ def stop_recording(proc, url=None):
             except Exception:
                 pass
 
+def create_evidence_writer(folder, base_name, fps, width, height):
+    os.makedirs(folder, exist_ok=True)
+    timestamp = time.strftime('%Y%m%d_%H%M%S')
+    path = os.path.join(folder, f"{base_name}_{timestamp}.mp4")
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    writer = cv2.VideoWriter(path, fourcc, fps, (width, height))
+    return writer, path
+
+def detect_stream(url, safe):
+    global detector
+    ydl = YoutubeDL({'quiet': True})
+    try:
+        info = ydl.extract_info(url, download=False)
+    except Exception as e:
+        print(f"[오류] 스트림 정보를 가져올 수 없습니다: {e}")
+        return
+    stream_url = info.get('url')
+    cap = cv2.VideoCapture(stream_url)
+    if not cap.isOpened():
+        print(f"[오류] 스트림을 열 수 없습니다: {url}")
+        return
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    writer = None
+    evidence_dir = os.path.join(EVIDENCE_ROOT, safe)
+    while not stop_flag and url in start_times:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        if detector and detector(frame):
+            if writer is None:
+                writer, path = create_evidence_writer(evidence_dir, safe, fps, width, height)
+                print(f"[경고] {url} 말 감지 → 증거 녹화 시작: {path}")
+            writer.write(frame)
+        else:
+            if writer:
+                print(f"[경고] {url} 말 사라짐 → 증거 녹화 종료")
+                writer.release()
+                writer = None
+    if writer:
+        writer.release()
+    cap.release()
+
 def listen_for_exit():
     global stop_flag
     while True:
@@ -95,7 +172,8 @@ def listen_for_exit():
             break
 
 def set_console_title(title):
-    win32api.SetConsoleTitle(title)
+    if win32api:
+        win32api.SetConsoleTitle(title)
 
 def show_elapsed():
     while not stop_flag:
@@ -117,6 +195,12 @@ if __name__ == "__main__":
     print(f" 설정 파일: {CONFIG_PATH}")
     print(" 종료: exit, quit, q + Enter 또는 Ctrl+C")
     print("────────────────────────────────────────")
+
+    detector = load_detector()
+
+    os.makedirs(OUTPUT_ROOT, exist_ok=True)
+    os.makedirs(EVIDENCE_ROOT, exist_ok=True)
+
 
     threading.Thread(target=listen_for_exit, daemon=True).start()
     threading.Thread(target=show_elapsed, daemon=True).start()
