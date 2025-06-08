@@ -32,6 +32,7 @@ EVIDENCE_ROOT = os.path.join(BASE_DIR, cfg.get("evidence_folder", "evidence"))
 FFMPEG_EXE_NAME = cfg.get("ffmpeg_exe", "ffmpeg.exe")
 DETECT_MODEL = os.path.join(BASE_DIR, cfg.get("detect_model", "yolov5s.pt"))
 CONF_THRESHOLD = float(cfg.get("conf_threshold", 0.5))
+COOKIEFILE = cfg.get("cookiefile")
 LOG_MAX_SIZE = 10 * 1024 * 1024  # 10 MB per log file
 # Logs from yt_dlp are stored as OUTPUT_ROOT/<channel>.log
 
@@ -90,6 +91,10 @@ def start_recording(url):
         "-o", template,
         url
     ]
+    if COOKIEFILE:
+        cookie_path = os.path.join(BASE_DIR, COOKIEFILE)
+        if os.path.isfile(cookie_path):
+            cmd.extend(["--cookies", cookie_path])
     proc = subprocess.Popen(cmd, stdout=log_file, stderr=subprocess.STDOUT)
     proc.log_file = log_file  # store to close later
     start_times[url] = time.time()
@@ -130,7 +135,12 @@ def create_evidence_writer(folder, base_name, fps, width, height):
 
 def detect_stream(url, safe):
     global detector
-    ydl = YoutubeDL({'quiet': True})
+    opts = {'quiet': True}
+    if COOKIEFILE:
+        cookie_path = os.path.join(BASE_DIR, COOKIEFILE)
+        if os.path.isfile(cookie_path):
+            opts['cookiefile'] = cookie_path
+    ydl = YoutubeDL(opts)
     try:
         info = ydl.extract_info(url, download=False)
     except Exception as e:
