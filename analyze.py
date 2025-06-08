@@ -15,6 +15,7 @@ with open(CONFIG_PATH, encoding='utf-8') as f:
 DETECT_MODEL = os.path.join(BASE_DIR, cfg.get('detect_model', 'yolov5s.pt'))
 CONF_THRESHOLD = float(cfg.get('conf_threshold', 0.5))
 EVIDENCE_ROOT = os.path.join(BASE_DIR, cfg.get('evidence_folder', 'evidence'))
+COOKIEFILE = cfg.get('cookiefile')
 
 
 def load_detector():
@@ -42,6 +43,12 @@ def create_writer(folder, base, fps, width, height):
 
 
 def analyze(url):
+    opts = {'quiet': True}
+    if COOKIEFILE:
+        cookie_path = os.path.join(BASE_DIR, COOKIEFILE)
+        if os.path.isfile(cookie_path):
+            opts['cookiefile'] = cookie_path
+    ydl = YoutubeDL(opts)
     ydl = YoutubeDL({'quiet': True})
     info = ydl.extract_info(url, download=False)
     stream_url = info['url']
