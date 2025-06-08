@@ -29,4 +29,5 @@
   "conf_threshold": 0.5,
   "evidence_folder": "evidence",
   "cookiefile": "cookies.txt"
+  "evidence_folder": "evidence"
 }
