@@ -141,7 +141,6 @@ def detect_stream(url, safe):
         if os.path.isfile(cookie_path):
             opts['cookiefile'] = cookie_path
     ydl = YoutubeDL(opts)
-    ydl = YoutubeDL({'quiet': True})
     try:
         info = ydl.extract_info(url, download=False)
     except Exception as e:

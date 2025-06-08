@@ -49,7 +49,6 @@ def analyze(url):
         if os.path.isfile(cookie_path):
             opts['cookiefile'] = cookie_path
     ydl = YoutubeDL(opts)
-    ydl = YoutubeDL({'quiet': True})
     info = ydl.extract_info(url, download=False)
     stream_url = info['url']
 
